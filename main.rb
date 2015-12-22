@@ -23,7 +23,7 @@ class RequestList
   end
 
   def served_all?
-
+    @down_requests == 0 && @up_requests == 0
   end
 
   def requests_waiting?(current_level, direction)
@@ -67,14 +67,18 @@ end
 
 
 requests = RequestList.new
+puts requests.served_all?
 requests.add_up(2)
 requests.add_up(4)
+puts requests.served_all?
 requests.add_down(1)
 requests.add_down(2)
 requests.print_list
 
 requests.serve_up(2)
 requests.serve_up(4)
+puts requests.served_all?
 requests.serve_down(1)
 requests.serve_down(2)
+puts requests.served_all?
 requests.print_list
