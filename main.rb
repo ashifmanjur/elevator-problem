@@ -27,6 +27,8 @@ class RequestList
       puts "Serving request: #{level} ↑\n"
       @up_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
     }
+
+    print_list
   end
 
   def serve_down(level)
@@ -34,28 +36,13 @@ class RequestList
       puts "Serving request: #{level} ↓\n"
       @down_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
     }
+
+    print_list
   end
 
   def empty?
     @mutex.synchronize {
       @down_requests == 0 && @up_requests == 0
-    }
-  end
-
-  def requests_waiting?(current_level, direction)
-    @mutex.synchronize {
-      case direction
-      when RequestList::DIRECTIONS[:up]
-        ((current_level + 1)..10).each do |level|
-          return true if @up_requests[level - 1] == 1
-        end
-      when RequestList::DIRECTIONS[:down]
-        (1..(current_level - 1)).each do |level|
-          return true if @down_requests[level - 1] == 1
-        end
-      end
-
-      false
     }
   end
 
@@ -92,6 +79,10 @@ class Car
     pick if stop_now?
   end
 
+  def pending_request?
+    !@requests.empty?
+  end
+
   def stop_now?
     @requests.has_request?(current_level, direction)
   end
@@ -101,25 +92,28 @@ class Car
 
     case direction
     when Car::DIRECTIONS[:up]
-      if @current_level == Car::MAX_FLOOR #|| !@requests.requests_waiting?(@current_level, @direction)
-        flip and return
+      if @current_level == Car::MAX_FLOOR
+        flip
+        sleep 0.3
+        return
       end
 
       @current_level += 1
-      sleep(0.2)
+      sleep(0.3)
 
     when Car::DIRECTIONS[:down]
-      if @current_level == 1 #|| !@requests.requests_waiting?(@current_level, @direction)
-        flip and return
+      if @current_level == 1
+        flip
+        sleep 0.3
+        return
       end
 
       @current_level -= 1
-      sleep(0.2)
+      sleep(0.3)
     end
   end
 
   def pick
-    sleep(0.5)
     @requests.send("serve_#{direction}".to_sym, @current_level)
   end
 
@@ -128,8 +122,7 @@ class Car
     pick
   end
 
-  def display
-    puts "#{current_level} #{@direction == Car::DIRECTIONS[:up] ? '↑' : '↓'}\n"
+  def list_display
     @requests.print_list
   end
 end
@@ -163,8 +156,10 @@ requests.print_list
 # puts requests.has_request?(3, RequestList::DIRECTIONS[:down])
 
 car_one = Car.new(1, Car::DIRECTIONS[:up], requests)
-car_two = Car.new(1, Car::DIRECTIONS[:up], requests)
-car_three = Car.new(1, Car::DIRECTIONS[:up], requests)
+car_two = Car.new(2, Car::DIRECTIONS[:up], requests)
+car_three = Car.new(3, Car::DIRECTIONS[:up], requests)
+
+Thread.abort_on_exception = true
 
 # car_one.display
 #
@@ -176,31 +171,40 @@ car_three = Car.new(1, Car::DIRECTIONS[:up], requests)
 # end
 
 car_one_thread = Thread.new do
-  while(!car_one.requests.empty?)
-    car_one.travel
-    puts "car 1 at: #{car_one.display}"
+  loop do
+    if car_one.pending_request?
+      car_one.travel
+    else
+      next
+    end
   end
 end
 
 car_two_thread = Thread.new do
-  while(!car_two.requests.empty?)
-    car_two.travel
-    puts "car 2 at: #{car_two.display}"
+  loop do
+    if car_two.pending_request?
+      car_two.travel
+    else
+      next
+    end
   end
 end
 
 car_three_thread = Thread.new do
-  while(!car_three.requests.empty?)
-    car_three.travel
-    puts "car 3 at: #{car_three.display}"
+  loop do
+    if car_three.pending_request?
+      car_three.travel
+    else
+      next
+    end
   end
 end
 
-# level_status_thread = Thread.new do
-#   while(!car_one.requests.empty? && !car_two.requests.empty? && !car_three.requests.empty?) do
-#     puts "1 --> #{car_one.position} #{car_one.direction == Car::DIRECTIONS[:up] ? '↑' : '↓'} ::: 2 --> #{car_two.position} #{car_two.direction == Car::DIRECTIONS[:up] ? '↑' : '↓'} ::: 2 --> #{car_three.position} #{car_three.direction == Car::DIRECTIONS[:up] ? '↑' : '↓'}\n"
-#     sleep(0.5)
-#   end
-# end
+level_status_thread = Thread.new do
+  loop do
+    puts "1 --> #{car_one.current_level} #{car_one.direction == Car::DIRECTIONS[:up] ? '↑' : '↓'} ::: 2 --> #{car_two.current_level} #{car_two.direction == Car::DIRECTIONS[:up] ? '↑' : '↓'} ::: 3 --> #{car_three.current_level} #{car_three.direction == Car::DIRECTIONS[:up] ? '↑' : '↓'}\n"
+    sleep(0.5)
+  end
+end
 
-[car_one_thread, car_two_thread, car_three_thread].each { |t| t.join }
+[car_one_thread, car_two_thread, car_three_thread, level_status_thread].each { |t| t.join }
