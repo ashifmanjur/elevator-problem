@@ -5,6 +5,22 @@ class RequestList
     @up_requests = 0b0000000000
     @down_requests = 0b0000000000
   end
+
+  def add_up(level)
+
+  end
+
+  def add_down(level)
+
+  end
+
+  def serve_up(level)
+
+  end
+
+  def serve_down(level)
+
+  end
 end
 
 class Car
