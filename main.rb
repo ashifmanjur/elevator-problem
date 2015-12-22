@@ -7,19 +7,31 @@ class RequestList
   end
 
   def add_up(level)
-
+    @up_requests |= (1 << (level - 1)) if level > 0 # set corresponding bit starting from right most position
   end
 
   def add_down(level)
-
+    @down_requests |= (1 << (level - 1)) if level > 0 # set corresponding bit starting from right most position
   end
 
   def serve_up(level)
-
+    @up_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
   end
 
   def serve_down(level)
+    @down_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
+  end
 
+  def served_all?
+
+  end
+
+  def requests_waiting?(current_level, direction)
+
+  end
+
+  def print_list
+    puts "up requests --> #{@up_requests.to_s(2)} :: down requests --> #{@down_requests.to_s(2)}"
   end
 end
 
@@ -52,3 +64,17 @@ class Car
 
   end
 end
+
+
+requests = RequestList.new
+requests.add_up(2)
+requests.add_up(4)
+requests.add_down(1)
+requests.add_down(2)
+requests.print_list
+
+requests.serve_up(2)
+requests.serve_up(4)
+requests.serve_down(1)
+requests.serve_down(2)
+requests.print_list
