@@ -6,24 +6,33 @@ class RequestList
   def initialize
     @up_requests = 0b0000101000
     @down_requests = 0b1101000100
+    @mutex = Mutex.new # To make sure only one thread at a time can mutate the request list
   end
 
   def add_up(level)
-    @up_requests |= (1 << (level - 1)) if level > 0 # set corresponding bit starting from right most position
+    @mutex.synchronize {
+      @up_requests |= (1 << (level - 1)) if level > 0 # set corresponding bit starting from right most position
+    }
   end
 
   def add_down(level)
-    @down_requests |= (1 << (level - 1)) if level > 0 # set corresponding bit starting from right most position
+    @mutex.synchronize {
+      @down_requests |= (1 << (level - 1)) if level > 0 # set corresponding bit starting from right most position
+    }
   end
 
   def serve_up(level)
-    puts "Serving request: #{level} ↑"
-    @up_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
+    @mutex.synchronize {
+      puts "Serving request: #{level} ↑"
+      @up_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
+    }
   end
 
   def serve_down(level)
-    puts "Serving request: #{level} ↓"
-    @down_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
+    @mutex.synchronize {
+      puts "Serving request: #{level} ↓"
+      @down_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
+    }
   end
 
   def empty?
