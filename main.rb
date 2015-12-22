@@ -1,132 +1,6 @@
 # encoding: utf-8
 require 'thread'
-
-class RequestList
-  DIRECTIONS = { up: 'up', down: 'down' }
-
-  def initialize
-    @up_requests = 0b0000101000
-    @down_requests = 0b1101000100
-    @mutex = Mutex.new # To make sure only one thread at a time can mutate the request list
-  end
-
-  def add_up(level)
-    @mutex.synchronize {
-      @up_requests |= (1 << (level - 1)) if level > 0 # set corresponding bit starting from right most position
-    }
-  end
-
-  def add_down(level)
-    @mutex.synchronize {
-      @down_requests |= (1 << (level - 1)) if level > 0 # set corresponding bit starting from right most position
-    }
-  end
-
-  def serve_up(level)
-    @mutex.synchronize {
-      puts "Serving request: #{level} ↑\n"
-      @up_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
-    }
-
-    print_list
-  end
-
-  def serve_down(level)
-    @mutex.synchronize {
-      puts "Serving request: #{level} ↓\n"
-      @down_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
-    }
-
-    print_list
-  end
-
-  def empty?
-    @mutex.synchronize {
-      @down_requests == 0 && @up_requests == 0
-    }
-  end
-
-  def has_request?(level, direction)
-    @mutex.synchronize {
-      case direction
-      when RequestList::DIRECTIONS[:up]
-        return true if @up_requests[level - 1] == 1
-      when RequestList::DIRECTIONS[:down]
-        return true if @down_requests[level - 1] == 1
-      end
-
-      false
-    }
-  end
-
-  def print_list
-    @mutex.synchronize {
-      puts "UP requests --> #{@up_requests.to_s(2)} :: DOWN requests --> #{@down_requests.to_s(2)}\n"
-    }
-  end
-end
-
-class Car
-  DIRECTIONS = { up: 'up', down: 'down' }
-  MAX_FLOOR = 10
-
-  attr_reader :current_level, :direction, :requests
-
-  def initialize(start_level = 1, direction, request_list)
-    @current_level = start_level
-    @direction = direction
-    @requests = request_list
-    pick if stop_now?
-  end
-
-  def pending_request?
-    !@requests.empty?
-  end
-
-  def stop_now?
-    @requests.has_request?(current_level, direction)
-  end
-
-  def travel
-    pick if stop_now?
-
-    case direction
-    when Car::DIRECTIONS[:up]
-      if @current_level == Car::MAX_FLOOR
-        flip
-        sleep 0.3
-        return
-      end
-
-      @current_level += 1
-      sleep(0.3)
-
-    when Car::DIRECTIONS[:down]
-      if @current_level == 1
-        flip
-        sleep 0.3
-        return
-      end
-
-      @current_level -= 1
-      sleep(0.3)
-    end
-  end
-
-  def pick
-    @requests.send("serve_#{direction}".to_sym, @current_level)
-  end
-
-  def flip
-    @direction = (@direction == Car::DIRECTIONS[:up] ? Car::DIRECTIONS[:down] : Car::DIRECTIONS[:up])
-    pick
-  end
-
-  def list_display
-    @requests.print_list
-  end
-end
-
+require_relative 'car'
 
 # requests = RequestList.new
 # puts requests.empty?
@@ -211,7 +85,7 @@ dynamic_request_thread = Thread.new do
   15.times do
     requests.add_up(rand(10))
     requests.add_down(rand(10))
-    sleep(2)
+    sleep(1)
     requests.print_list
   end
 end
