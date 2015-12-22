@@ -4,8 +4,8 @@ class RequestList
   DIRECTIONS = { up: 'up', down: 'down' }
 
   def initialize
-    @up_requests = 0b0000000000
-    @down_requests = 0b0000000000
+    @up_requests = 0b0000101000
+    @down_requests = 0b1101000100
   end
 
   def add_up(level)
@@ -17,10 +17,12 @@ class RequestList
   end
 
   def serve_up(level)
+    puts "Serving request: #{level} ↑"
     @up_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
   end
 
   def serve_down(level)
+    puts "Serving request: #{level} ↓"
     @down_requests &= ~(1 << (level - 1)) if level > 0 # unset corresponding bit starting from right most position
   end
 
@@ -31,12 +33,12 @@ class RequestList
   def requests_waiting?(current_level, direction)
     case direction
     when RequestList::DIRECTIONS[:up]
-      (current_level..10).each do |level|
-        return true if @down_requests[level - 1] == 1
+      ((current_level + 1)..10).each do |level|
+        return true if (@up_requests[level - 1] == 1 || @down_requests[level - 1] == 1)
       end
     when RequestList::DIRECTIONS[:down]
-      (1..current_level).each do |level|
-        return true if @up_requests[level - 1] == 1
+      (1..(current_level - 1)).each do |level|
+        return true if (@up_requests[level - 1] == 1 || @down_requests[level - 1] == 1)
       end
     end
 
@@ -55,7 +57,7 @@ class RequestList
   end
 
   def print_list
-    puts "up requests --> #{@up_requests.to_s(2)} :: down requests --> #{@down_requests.to_s(2)}"
+    puts "UP requests --> #{@up_requests.to_s(2)} :: DOWN requests --> #{@down_requests.to_s(2)}"
   end
 end
 
@@ -79,30 +81,29 @@ class Car
   def travel
     case direction
     when Car::DIRECTIONS[:up]
-      if @current_level == Car::MAX_FLOOR
+      pick if @requests.has_request?(@current_level, @direction)
+
+      if @current_level == Car::MAX_FLOOR || !@requests.requests_waiting?(@current_level, @direction)
         flip
         return
       end
 
-      pick if @requests.has_request?(@current_level, @direction)
       @current_level += 1
+
     when Car::DIRECTIONS[:down]
-      if @current_level == 1
+      pick if @requests.has_request?(@current_level, @direction)
+
+      if @current_level == 1 || !@requests.requests_waiting?(@current_level, @direction)
         flip
         return
       end
 
-      pick if @requests.has_request?(@current_level, @direction)
       @current_level -= 1
     end
   end
 
   def pick
     @requests.send("serve_#{direction}".to_sym, @current_level)
-  end
-
-  def requests_waiting?
-
   end
 
   def flip
@@ -135,26 +136,20 @@ end
 
 requests = RequestList.new
 
-requests.add_up(1)
-requests.add_up(4)
-requests.add_down(2)
+# requests.add_up(1)
+# requests.add_up(4)
+# requests.add_down(2)
 
 requests.print_list
 
 # puts requests.has_request?(3, RequestList::DIRECTIONS[:down])
 
 car_one = Car.new(1, Car::DIRECTIONS[:up], requests)
-
-car_one.travel
 car_one.display
 
-car_one.travel
-car_one.display
+while(!car_one.requests.empty?)
+  car_one.travel
+  requests.print_list
 
-car_one.travel
-car_one.display
-
-car_one.travel
-car_one.display
-
-requests.print_list
+  car_one.display
+end
