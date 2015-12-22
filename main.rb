@@ -203,8 +203,17 @@ end
 level_status_thread = Thread.new do
   loop do
     puts "1 --> #{car_one.current_level} #{car_one.direction == Car::DIRECTIONS[:up] ? '↑' : '↓'} ::: 2 --> #{car_two.current_level} #{car_two.direction == Car::DIRECTIONS[:up] ? '↑' : '↓'} ::: 3 --> #{car_three.current_level} #{car_three.direction == Car::DIRECTIONS[:up] ? '↑' : '↓'}\n"
-    sleep(0.5)
+    sleep(1)
   end
 end
 
-[car_one_thread, car_two_thread, car_three_thread, level_status_thread].each { |t| t.join }
+dynamic_request_thread = Thread.new do
+  15.times do
+    requests.add_up(rand(10))
+    requests.add_down(rand(10))
+    sleep(2)
+    requests.print_list
+  end
+end
+
+[car_one_thread, car_two_thread, car_three_thread, level_status_thread, dynamic_request_thread].each { |t| t.join }
