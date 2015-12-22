@@ -15,4 +15,24 @@ class Car
     @direction = direction
     @requests = request_list
   end
+
+  def should_stop?
+
+  end
+
+  def travel_single_level
+
+  end
+
+  def pick_passengers
+
+  end
+
+  def waiting_requests?
+
+  end
+
+  def flip_direction
+
+  end
 end
